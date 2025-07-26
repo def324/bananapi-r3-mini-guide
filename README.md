@@ -57,6 +57,7 @@
   - [`luci-app-gpoint`](#luci-app-gpoint)
 - [Fan Control](#fan-control)
   - [`/usr/bin/fancontrol.sh` Script](#usrbinfancontrolsh-script)
+  - [Init Service](#init-service)
 - [Storage (NVMe SSD)](#storage-nvme-ssd)
 - [Recovery \& Unbrick Guide](#recovery--unbrick-guide)
 - [Useful Links](#useful-links)
@@ -79,7 +80,7 @@ Let’s get serious 🧐
 
 ## Introduction
 
-This guide walks you through building a compact 5G router powered based on the BananPi R3-Mini platform using ImmortalWrt, with proven reliability real-world automotive use. You’ll learn how to set up advanced features such as WireGuard VPN tunnels to your home network (optional), GPS logging, and continuous GPS location updates sent to a home server (also optional).
+This guide walks you through building a compact 5G router powered by the Banana Pi R3 Mini platform using ImmortalWrt, with proven reliability in real-world automotive use. You’ll learn how to set up advanced features such as WireGuard VPN tunnels to your home network (optional), GPS logging, and continuous GPS location updates sent to a home server (also optional).
 
 Step by step, the guide covers everything you need:
 
@@ -149,9 +150,13 @@ Whether you want robust in-car connectivity or a flexible portable router, this 
   - It lacks enough antenna ports to accommodate 4x5G antennas and 4xWiFi antennas which would yield optimal performance.
 
 - **Alternatives** 
-  - As of July 2025 there is active development in this area:
-    - @JohnBottoms_1508911 developed a [great case](https://www.printables.com/model/1269483-banana-pi-r3-mini-case) that will comfortably fit a Noctou fan. It's footprint is larger than the stock case, but it should significantly improve thermals and noise. This case has not yet been tested as part of the guide development.
-    - There is an active discussion on this [Banana Pi form thread](https://forum.banana-pi.org/t/banana-pi-r3-mini-issues/23673). The discussion revolves around modifying the stock case's lid to fit a Noctua fan without increasing the size of the case significantly. As part of the development of this guide we are actively looking into this option, but as of July 2025 we do not have a specific recommendation.
+  - As part of this guide we developed two STL designs for 3D printing lid replacements (see hardware folder for more info):
+    - The first design is a simple replacement of the existing lid while allowing to mount a Noctua NF-A4x10 5V PWM fan directly inside the case. This allows for the footprint of the case to be unchanged. This lid does not significantly improve the thermals but it almost entirely eliminates the noise of the stock fan.
+    - The second design is meant to be deployed in more challenging thermal environments. It allows for mounting a Noctua NF-A6x25 5V PWM fan on top of the case. This increase the footprint of the case significantly, however the actual impact should be fairly minimal since the antennas take up significant space as well. Thanks to Banana Pi forum user `bprfh` for the inspiration.
+![BPI R3 Mini Lid with Noctua A6x25 mount](<hardware/photos/BPI R3 Mini Lid with Noctua A6x25 mount.jpeg>)
+  - Other Resources:
+    - @JohnBottoms_1508911 developed a [great case](https://www.printables.com/model/1269483-banana-pi-r3-mini-case) that will comfortably fit a Noctua A4x20 fan. Its footprint is larger than the stock case, but it should significantly improve thermals and noise. It also enables all antennas to be used.
+    - There is an active discussion on this [Banana Pi forum thread](https://forum.banana-pi.org/t/banana-pi-r3-mini-issues/23673). The discussion revolves around modifying the stock case's lid to fit a Noctua fan without increasing the size of the case significantly. The forum user `bprfh` posted the STL files for 3D printing. One of the designs developed as part of this guide was influenced by this approach.
 
 ## Firmware Installation
 
@@ -334,7 +339,7 @@ Whether you want robust in-car connectivity or a flexible portable router, this 
 
 3. Back in **Network › Wireless**, click **Save & Apply**.  
 4. Wait for the wireless restart to complete (status turns green).
-5. You will need to reconnect to the new wirless network.
+5. You will need to reconnect to the new wireless network.
 
 ##### Verification
 
@@ -368,6 +373,7 @@ Install these packages to enable the web components, cellular modem control, VPN
 - **Diagnostics & Utilities**
   - `usbutils` – `lsusb` and friends for USB troubleshooting.
   - `picocom` – Minimal serial console (handy for AT commands).
+  - `socat` - Serial console interactions from scripts.
 - **VPN** (Optional)
   - `luci-proto-wireguard` – LuCI integration for WireGuard.
   - `wireguard-tools` – CLI utilities (`wg`, `wg-quick`).
@@ -382,10 +388,10 @@ opkg install \
   luci luci-app-3ginfo-lite luci-app-gpoint \
   luci-proto-mbim umbim mbim-utils kmod-usb-serial-option \
   gpsd gpsd-clients \
-  usbutils picocom
+  usbutils picocom socat
 # Optional WireGuard VPN
 opkg install luci-proto-wireguard wireguard-tools
-# Optional stistics
+# Optional statistics
 opkg install luci-app-statistics collectd-mod-thermal
 ~~~
 
@@ -610,7 +616,7 @@ The Quectel RM520N-GL includes built-in GNSS (GPS/GLONASS/BeiDou/Galileo) functi
 
 4. **Check GPS Status**
 
-   - To check for a current GPS fix or view raw data (**Note:** It can take 5-10 minuntes to establish an initial GPS fix):
+   - To check for a current GPS fix or view raw data (**Note:** It can take 5-10 minutes to establish an initial GPS fix):
 
    ```
    AT+QGPSLOC=0
@@ -711,6 +717,10 @@ Because the script manipulates hardware trip points instead of driving PWM direc
 
 The script has been adapted from user cwxiaos on the [Banana Pi forum](https://forum.banana-pi.org/t/banana-pi-bpi-r3-mini-5g-module-heatsink-and-fan/17738/20)
 
+Improvements to the script:
+ - Use higher temperature out of modem and CPU. Fallback to CPU if getting modem temperature fails.
+ - Adjusted trip points to work well with enhanced cases mentioned in the [Hardware Overview](#hardware-overview) section.
+
 ```bash
 #!/bin/ash
 
@@ -725,9 +735,9 @@ TRIP_3="/sys/class/thermal/thermal_zone0/trip_point_3_temp"
 TRIP_4="/sys/class/thermal/thermal_zone0/trip_point_4_temp"
 
 # Temperature thresholds (in millidegrees Celsius)
-LOW_TEMP=40000
-MEDIUM_TEMP=47000
-HIGH_TEMP=54000
+LOW_TEMP=37000
+MEDIUM_TEMP=43000
+HIGH_TEMP=59000
 VERY_HIGH_TEMP=70000
 CRITICAL_TEMP=80000
 
@@ -770,13 +780,28 @@ echo "$VERY_HIGH_TEMP" > "$TRIP_1"
 echo "$CRITICAL_TEMP" > "$TRIP_0"
 
 while true; do
-    # Read current temperature
+    # Read CPU temperature (convert from millidegrees to degrees)
     if [ -f "$TEMP_PATH" ]; then
-        TEMP=$(cat "$TEMP_PATH")
+        CPU_TEMP=$(cat "$TEMP_PATH")
+        CPU_TEMP=$((CPU_TEMP / 1000))
     else
         echo "Error: Unable to read temperature from $TEMP_PATH"
         exit 1
     fi
+
+    # Read max modem temperature
+    MODEM_TEMP=$(echo "AT+QTEMP" | socat - /dev/ttyUSB3,crnl,echo=0 | grep +QTEMP | awk -F',' '{gsub(/"/,"",$2); print $2}' | sort -nr | head -1)
+    # If modem temp not available, default to CPU temp
+    [ -z "$MODEM_TEMP" ] && MODEM_TEMP=$CPU_TEMP
+
+    # Choose the higher temperature
+    if [ "$CPU_TEMP" -gt "$MODEM_TEMP" ]; then
+        TEMP=$CPU_TEMP
+    else
+        TEMP=$MODEM_TEMP
+    fi
+
+    TEMP=$((TEMP * 1000))   # Convert to millidegrees
 
     # Determine fan speed level based on hysteresis control
     case "$PREV_LEVEL" in
@@ -812,8 +837,13 @@ while true; do
     # Update fan speed only if the level changes
     [ "$LEVEL" -ne "$PREV_LEVEL" ] && set_trip_points "$LEVEL"
 
+    echo "CPU_TEMP=${CPU_TEMP}C MODEM_TEMP=${MODEM_TEMP}C TEMP_USED=${TEMP} FAN_LEVEL=${LEVEL}"
+
     sleep 2
 done
+```
+
+**Important:** Make sure to test the script and monitor its output to make sure you get the expected temperatures and fan levels. The script is not great at error handling. Use with caution and proper testing, to avoid overheating. ***The author takes no responsibility for damage caused to any devices.***
 
 ### Init Service
 
@@ -845,17 +875,18 @@ start_service() {
   /etc/init.d/fancontrol start
   ```
 
-
 ## Storage (NVMe SSD)
-**TODO**
+_Not yet documented. Coming soon._
+
 ## Recovery & Unbrick Guide
-**TODO**
+_Not yet documented. Coming soon._
+
 ## Useful Links
 * [ImmortalWRT Downloads](https://downloads.immortalwrt.org/)
-* [BanaPi R3/Mini Forum](https://forum.banana-pi.org/c/banana-router/bpi-r3/64)
+* [Banana Pi R3/Mini Forum](https://forum.banana-pi.org/c/banana-router/bpi-r3/64)
 ## TODO & Future Improvements
 * Dedicated watchdog script to try to recover from failed modem detection
 * GPS/Wireguard/traccar setup
 * Storage (NVMe SSD)
+* Recovery/Unbrick process
 * sysupgrade.conf documentation for config to survive upgrades
-* More info on case mods
