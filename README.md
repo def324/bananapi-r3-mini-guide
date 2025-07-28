@@ -379,6 +379,13 @@ Install these packages to enable the web components, cellular modem control, VPN
   - `wireguard-tools` – CLI utilities (`wg`, `wg-quick`).
 - **Monitoring** (Optional)
   - `collectd-mod-thermal` – Temperature sensor plugin for *collectd*.
+- **NVME Disk Support** (Optipnal)
+  - `kmod-nvme` - NVME Kernel driver
+  - `kmod-fs-ext4` - ext4 filesystem
+  - `fdisk` - Partitioning tool
+- **SMS Tools** (Optional)
+  - `sms-tool` - Sms tool
+  - `luci-app-sms-tool-js` - Luci App for managing SMS
 
 #### Install Command
 
@@ -393,6 +400,10 @@ opkg install \
 opkg install luci-proto-wireguard wireguard-tools
 # Optional statistics
 opkg install luci-app-statistics collectd-mod-thermal
+# Optional NVME Disk Support
+opkg install kmod-nvme kmod-fs-ext4 fdisk
+# Optional SMS Tools
+opkg install luci-app-sms-tool-js sms-tool
 ~~~
 
 
@@ -876,7 +887,24 @@ start_service() {
   ```
 
 ## Storage (NVMe SSD)
-_Not yet documented. Coming soon._
+
+During development of this guide the following SSD was used: `WD_BLACK 1 TB SN770M M.2 2230` - Reviews suggested good thermal performance which was critical for this device.
+
+Assuming you are using a brand new SSD the following setps will parition and format the SSD with the ext4 filesystem. **IMPORTANT:** Any data on the SSD will be wiped.
+
+```bash
+fdisk /dev/nvme0n1 # Verify that this is your NVME drive
+# Inside the fdisk tool
+g
+n # (enter for all defaults)
+# Answer Yes to "Do you want to remove the signature? [Y]es/[N]o: Y" if asked
+w
+
+mkfs.ext4 /dev/nvme0n1p1
+# Run "umount /dev/nvme0n1p1" if you get an error about the filesystem already being mounted.
+```
+
+After a reboot the SSD should be automatically mounted in `/mnt/nvme0n1p1`.
 
 ## Recovery & Unbrick Guide
 _Not yet documented. Coming soon._
