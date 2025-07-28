@@ -163,7 +163,7 @@ Whether you want robust in-car connectivity or a flexible portable router, this 
 ### Choosing a Distribution
 
 - This guide is tested with **ImmortalWrt 24.10.2**.
-- **OpenWRT** (as of July 2025) does not offer reliable support for the Banana Pi R3 Mini and should be avoided.
+- **OpenWRT** has not been tested thoroughly when this guide was developed. However based on feedback on the [Banana Pi forum](https://forum.banana-pi.org/t/banana-pi-r3-mini-5g-router-guide-hardware-resources/23962/4) OpenWRT should also work. Most parts of the guide will likely work without much modification.
 - Other firmware options—such as **r00ter** and **bananwrt**—were evaluated, but caused failures during development and are not recommended.
 
 ### Downloading Firmware Images
