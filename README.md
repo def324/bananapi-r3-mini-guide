@@ -48,6 +48,7 @@
     - [Steps](#steps)
     - [Verification](#verification-1)
     - [Tips](#tips-1)
+  - [SIM "Hot"-swap](#sim-hot-swap)
   - [Watchdog \& Recovery Scripts](#watchdog--recovery-scripts)
 - [GPS Integration](#gps-integration)
   - [Enabling GNSS](#enabling-gnss)
@@ -584,6 +585,51 @@ To bring up your Quectel RM520N-GL modem for cellular data, configure the WWAN i
 
 - You can view live modem status under **Modem > Information about 3G/4G/5G connection** section in LUCI.
 - For SIM PIN issues, try a different SIM or use a phone to disable the PIN.
+
+### SIM "Hot"-swap
+
+We made extensive attempts to make SIM hotswap work reliably. There are mainly three issues:
+- The BPI R3 Mini doesn't have the SIM_DET pin wired, so hardware detection is not possible.
+- The "FULL_CARD_POWER_OFF#" pin is not wired, so only a warm reboot of the modem is possible.
+- After a few warm reboots the modems AT port becomes unreliable (this seems to be a firmware issue which may be resolved in the future)
+
+Due to these limitations the only reliable way we found was to reboot the entire device when a SIM swap is detected (not really a hotswap anymore). This mayb not be desirable in all situations, **so use with caution.**
+
+From testing you would need to remove the SIM for at least 30 seconds before the reboot gets triggerd.
+
+**IMPORTANT:** If there is no SIM card in the modem or the modem is otherwise in a strange state, this could leave your device in a reboot loop. We don't take responsibility for any issues resulting from the use of this script.
+
+It can certainly be argued that manually rebooting the device upon SIM swap is the better way to go, however we wanted to keep the script for completenes.
+
+```ash
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+USE_PROCD=1
+
+MODEM_PORT="/dev/ttyUSB2"
+INTERVAL=10
+RESET_PAUSE=30
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /bin/sh -c '
+        while true; do
+            if [ ! -e '"$MODEM_PORT"' ]; then
+                sleep 2
+                continue
+            fi
+            if echo -e "AT+CPIN?\r" | socat -T2 - '"$MODEM_PORT"',raw,echo=0,crnl | grep -q "+CME ERROR: 13"; then
+                logger -t sim-watchdog "SIM failure detected – rebooting device"
+                reboot
+            fi
+            sleep '"$INTERVAL"'
+        done
+    '
+    procd_close_instance
+}
+```
 
 ### Watchdog & Recovery Scripts
 *TODO* (Currently handled by GPS integration)
