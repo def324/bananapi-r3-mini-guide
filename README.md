@@ -1,3 +1,16 @@
+# ‼️ DEPRECATION WARNING ‼️
+
+As of June 2026, this guide is no longer the optimal, especially in regards to the Software/Script setup. OpenWRT 25.12 fixed a lot of 5G related instability issues that plagued earlier versions of both OpenWRT and ImmortalWRT. As of June 2026 my recommended setup is:
+
+- OpenWRT 25.12.4
+- Follow the official OpenWRT install guide
+- Use OpenWRT modemmanager (this is where most of the fixes since OpenWRT 24.10 landed)
+- You may need GPIO Power Cycling Script, however the ones listed here are untested as of now
+- You should no longer need any watchdog scripts (most watchdog workarounds have been resolved with OpenWRT 25.12 and latest modemmanager)
+- Flashing related documentation here should be handled with high level of caution since none of these methods have been tested with the latest version.
+- Many scripts/commands below will no longer work with OpenWRT 25.12.
+- Hardware related items are still useful and have not changed
+
 ## Banana Pi R3 Mini — 5G Router Setup Guide
 
 > **Objective:** Convert a Banana Pi R3 Mini fitted with a Quectel RM520N-GL into a dependable 5G router—from hardware setup and firmware flashing to Wi-Fi band-steering, secure user & SSH configuration, targeted package deployment, software-controlled fan management, everyday optimizations, optional GPS/VPN extras, and full recovery procedures.
